@@ -2,98 +2,37 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Taxi V6 Local</title>
-
-<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<title>Taxi Test</title>
 
 <style>
 body {
   font-family: Arial;
-  padding: 15px;
-  background: #0f1115;
+  background: #111;
   color: white;
+  padding: 20px;
 }
-
-h2 { text-align: center; }
 
 button {
   width: 100%;
-  margin: 6px 0;
-  padding: 12px;
-  border: none;
-  border-radius: 10px;
-  background: #2d6cff;
-  color: white;
-  font-weight: bold;
-}
-
-input {
-  width: 100%;
-  padding: 12px;
-  margin: 5px 0;
-  border-radius: 8px;
-  border: 1px solid #333;
-  background: #161a22;
-  color: white;
-  color: white;
-}
-
-.card {
-  background: #161a22;
-  padding: 12px;
+  padding: 15px;
   margin: 10px 0;
-  border-radius: 12px;
-}
-
-.hidden { display:none; }
-
-.topbar {
-  display:flex;
-  gap:10px;
-}
-
-.smallBtn {
-  background:#444;
-  width: 30%;
+  font-size: 16px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🚖 Taxi V6 (Local)</h2>
+<h2>ПРОВЕРКА КНОПОК</h2>
 
-<div id="roleSelect">
-  <button onclick="setRole('passenger')">🚶 Пассажир</button>
-  <button onclick="setRole('driver')">🚗 Водитель</button>
-</div>
+<button onclick="test()">НАЖМИ МЕНЯ</button>
 
-<div class="topbar hidden" id="topbar">
-  <button class="smallBtn" onclick="back()">⬅ Назад</button>
-</div>
+<input id="from" placeholder="Откуда">
+<input id="to" placeholder="Куда">
 
-<div id="passengerUI" class="hidden">
-  <input id="from" placeholder="Откуда">
-  <input id="to" placeholder="Куда">
-  <button onclick="createOrder()">🚕 Создать заказ</button>
-</div>
+<button onclick="createOrder()">Создать заказ</button>
 
-<div id="driverUI" class="hidden">
-  <input id="callsign" placeholder="Позывной">
-  <button onclick="saveDriver()">Стать онлайн 🟢</button>
-</div>
-
-<hr>
-
-<div id="orders"></div>
-
-<script>
-vkBridge.send("VKWebAppInit");
-
-function back(){
-  location.reload();
-}
-</script>
+<div id="log"></div>
 
 <script src="app.js"></script>
 
