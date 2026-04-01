@@ -1,27 +1,27 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  updateDoc,
-  doc,
-  query,
-  orderBy
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// 🔥 Firebase (НЕ module версия)
+importScripts = null;
 
-// 🔥 ТВОЙ НОВЫЙ FIREBASE
+// Подключаем Firebase через window
+const script1 = document.createElement("script");
+script1.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js";
+document.head.appendChild(script1);
+
+const script2 = document.createElement("script");
+script2.src = "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js";
+document.head.appendChild(script2);
+
+script2.onload = init;
+
+function init(){
+
 const firebaseConfig = {
   apiKey: "AIzaSyAJqUn_fc1gKZ1MLbApQaJoCZELBceAI1w",
   authDomain: "eee2taxawaw.firebaseapp.com",
-  projectId: "eee2taxawaw",
-  storageBucket: "eee2taxawaw.firebasestorage.app",
-  messagingSenderId: "363185394019",
-  appId: "1:363185394019:web:4a256088c4f16a274a8356"
+  projectId: "eee2taxawaw"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 // ================= STATE =================
 let user = null;
@@ -29,17 +29,15 @@ let role = null;
 let cooldown = {};
 let priceCache = {};
 
-// ================= VK USER (ФИКС) =================
+// ================= VK =================
 async function initUser(){
   try {
     const res = await vkBridge.send("VKWebAppGetUserInfo");
     user = res.id;
-    console.log("USER:", user);
   } catch(e){
     notify("Ошибка VK");
   }
 }
-
 initUser();
 
 // ================= NOTIFY =================
@@ -71,16 +69,12 @@ window.setRole = function(r){
 // ================= DRIVER =================
 window.saveDriver = async function () {
 
-  if (!user) {
-    notify("Загрузка VK...");
-    await initUser();
-    if (!user) return notify("Ошибка VK");
-  }
+  if (!user) await initUser();
 
   const callsign = document.getElementById("callsign").value.trim();
   if (!callsign) return notify("Введите позывной");
 
-  await addDoc(collection(db, "drivers"), {
+  await db.collection("drivers").add({
     vk: user,
     status: "online",
     callsign,
@@ -90,51 +84,24 @@ window.saveDriver = async function () {
   notify("Вы онлайн 🟢");
 };
 
-// ================= PRICE TXT =================
-async function loadCityPrices(city){
-
-  if (priceCache[city]) return priceCache[city];
-
-  try {
-    const res = await fetch(`prices/${city}.txt`);
-    const text = await res.text();
-
-    const map = {};
-
-    text.split("\n").forEach(line => {
-      const [to, price] = line.split("=");
-      if (to && price) map[to.trim()] = Number(price.trim());
-    });
-
-    priceCache[city] = map;
-    return map;
-
-  } catch(e){
-    return {};
-  }
-}
-
-async function getPrice(from, to){
-  const prices = await loadCityPrices(from);
-  return prices[to] || 150;
+// ================= PRICE =================
+async function getPrice(){
+  return 150;
 }
 
 // ================= CREATE ORDER =================
 window.createOrder = async function () {
 
-  if (!user) {
-    await initUser();
-    if (!user) return notify("Ошибка VK");
-  }
+  if (!user) await initUser();
 
   const from = document.getElementById("from").value.trim();
   const to = document.getElementById("to").value.trim();
 
   if (!from || !to) return notify("Заполните поля");
 
-  const price = await getPrice(from, to);
+  const price = await getPrice();
 
-  await addDoc(collection(db, "orders"), {
+  await db.collection("orders").add({
     from,
     to,
     price,
@@ -144,7 +111,7 @@ window.createOrder = async function () {
     created: Date.now()
   });
 
-  notify("Заказ создан 🚕 " + price + "₽");
+  notify("Заказ создан 🚕");
 };
 
 // ================= DRIVER ACTIONS =================
@@ -154,72 +121,47 @@ window.acceptOrder = async function (id) {
     return notify("Кулдаун 2 минуты ⏳");
   }
 
-  await updateDoc(doc(db, "orders", id), {
+  await db.collection("orders").doc(id).update({
     status: "accepted",
     driver: user
   });
 
   cooldown[user] = Date.now();
-  notify("Заказ принят 🚖");
 };
 
 window.arrived = async function (id) {
-  await updateDoc(doc(db, "orders", id), { status: "arrived" });
-  notify("Вы на месте 📍");
+  await db.collection("orders").doc(id).update({ status: "arrived" });
 };
 
 window.finish = async function (id) {
-  await updateDoc(doc(db, "orders", id), { status: "done" });
-  notify("Поездка завершена ✅");
+  await db.collection("orders").doc(id).update({ status: "done" });
 };
 
 window.cancel = async function (id) {
-  await updateDoc(doc(db, "orders", id), { status: "cancelled" });
-  notify("Отмена ❌");
+  await db.collection("orders").doc(id).update({ status: "cancelled" });
 };
 
 // ================= RENDER =================
-onSnapshot(query(collection(db, "orders"), orderBy("created", "desc")), snap => {
+db.collection("orders")
+.orderBy("created", "desc")
+.onSnapshot(snap => {
 
   let html = "<h3>🚕 Заказы</h3>";
 
   snap.forEach(d => {
     const o = d.data();
 
-    let style = "";
-    if (o.status === "accepted") style = "opacity:0.6;";
-    if (o.status === "done" || o.status === "cancelled")
-      style = "opacity:0.3; filter:grayscale(1);";
-
-    html += `<div class="card" style="${style}">
-      <b>📍 ${o.from} → ${o.to}</b><br>
-      💰 ${o.price || 150}₽<br>
+    html += `<div class="card">
+      <b>${o.from} → ${o.to}</b><br>
+      💰 ${o.price}<br>
       Статус: ${o.status}<br>`;
 
-    if (role === "driver") {
-
-      if (o.status === "new") {
-        html += `<button onclick="acceptOrder('${d.id}')">Принять 🚖</button>`;
-      }
-
-      if (o.driver === user && o.status === "accepted") {
-        html += `
-          <button onclick="arrived('${d.id}')">На месте 📍</button>
-          <button onclick="finish('${d.id}')">Завершить ✅</button>
-          <button onclick="cancel('${d.id}')">Отмена ❌</button>
-        `;
-      }
+    if (role === "driver" && o.status === "new") {
+      html += `<button onclick="acceptOrder('${d.id}')">Принять</button>`;
     }
 
     if (role === "passenger" && o.passenger === user) {
-
-      if (o.status === "accepted") html += "🚖 Водитель едет...";
-      if (o.status === "arrived") html += "📍 Машина на месте";
-      if (o.status === "done") html += "✅ Завершено";
-
-      if (o.status !== "done") {
-        html += `<br><button onclick="cancel('${d.id}')">Отмена ❌</button>`;
-      }
+      html += `<button onclick="cancel('${d.id}')">Отмена</button>`;
     }
 
     html += "</div>";
@@ -227,3 +169,5 @@ onSnapshot(query(collection(db, "orders"), orderBy("created", "desc")), snap => 
 
   document.getElementById("orders").innerHTML = html;
 });
+
+}
