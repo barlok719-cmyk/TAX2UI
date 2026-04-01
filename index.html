@@ -6,6 +6,10 @@
 
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
 
+<!-- ✅ Firebase сразу -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
 <style>
 body {
   font-family: Arial;
@@ -97,9 +101,6 @@ hr {
 
 <div id="orders"></div>
 
-<!-- ❗ ВАЖНО: без type="module" -->
-<script src="app.js"></script>
-
 <script>
 vkBridge.send("VKWebAppInit");
 
@@ -110,6 +111,9 @@ function back(){
   document.getElementById("topbar").classList.add("hidden");
 }
 </script>
+
+<!-- ВАЖНО: в самом конце -->
+<script src="app.js"></script>
 
 </body>
 </html>
