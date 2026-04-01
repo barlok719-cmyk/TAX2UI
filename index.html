@@ -2,13 +2,9 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Taxi V6</title>
+<title>Taxi V6 Local</title>
 
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-
-<!-- ✅ Firebase сразу -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
 body {
@@ -31,8 +27,6 @@ button {
   font-weight: bold;
 }
 
-button:active { transform: scale(0.98); }
-
 input {
   width: 100%;
   padding: 12px;
@@ -41,6 +35,7 @@ input {
   border: 1px solid #333;
   background: #161a22;
   color: white;
+  color: white;
 }
 
 .card {
@@ -48,16 +43,9 @@ input {
   padding: 12px;
   margin: 10px 0;
   border-radius: 12px;
-  border: 1px solid #222;
 }
 
 .hidden { display:none; }
-
-hr {
-  border: 0;
-  border-top: 1px solid #222;
-  margin: 15px 0;
-}
 
 .topbar {
   display:flex;
@@ -73,7 +61,7 @@ hr {
 
 <body>
 
-<h2>🚖 Taxi V6</h2>
+<h2>🚖 Taxi V6 (Local)</h2>
 
 <div id="roleSelect">
   <button onclick="setRole('passenger')">🚶 Пассажир</button>
@@ -85,14 +73,12 @@ hr {
 </div>
 
 <div id="passengerUI" class="hidden">
-  <h3>Заказ</h3>
   <input id="from" placeholder="Откуда">
   <input id="to" placeholder="Куда">
   <button onclick="createOrder()">🚕 Создать заказ</button>
 </div>
 
 <div id="driverUI" class="hidden">
-  <h3>Водитель</h3>
   <input id="callsign" placeholder="Позывной">
   <button onclick="saveDriver()">Стать онлайн 🟢</button>
 </div>
@@ -105,14 +91,10 @@ hr {
 vkBridge.send("VKWebAppInit");
 
 function back(){
-  document.getElementById("roleSelect").classList.remove("hidden");
-  document.getElementById("passengerUI").classList.add("hidden");
-  document.getElementById("driverUI").classList.add("hidden");
-  document.getElementById("topbar").classList.add("hidden");
+  location.reload();
 }
 </script>
 
-<!-- ВАЖНО: в самом конце -->
 <script src="app.js"></script>
 
 </body>
