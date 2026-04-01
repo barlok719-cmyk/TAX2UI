@@ -10,6 +10,9 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+vkBridge.send("VKWebAppInit");
+
+// 🔥 FIREBASE (ТВОИ ДАННЫЕ)
 const firebaseConfig = {
   apiKey: "AIzaSyD48x9Cqg88dzY0udAkbMsxblhZyhxG-f4",
   authDomain: "taxi-app-158f3.firebaseapp.com",
@@ -22,117 +25,90 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+let role = "";
 let user = null;
-let role = null;
 let cooldown = {};
-let lastState = {};
 
-// VK init
+// VK USER
 vkBridge.send("VKWebAppGetUserInfo").then(res => {
   user = res.id;
 });
 
-// норм уведомления
-function notify(msg){
+// 🔔 уведомления (простые VK)
+function notify(text){
   vkBridge.send("VKWebAppShowMessageBox", {
-    title: "Taxi V6",
-    message: msg
+    title: "Taxi App",
+    message: text
   });
 }
 
-// сделать доступной HTML-кнопку назад
-window.back = function(){
-  role = null;
-};
-
-// ========== ROLE ==========
+// ================= ROLE =================
 window.setRole = function(r){
   role = r;
-};
 
-// ========== DRIVER ONLINE ==========
-window.saveDriver = async function () {
+  document.getElementById("roleSelect").classList.add("hidden");
 
-  const callsign = document.getElementById("callsign").value.trim();
+  if(r==="driver")
+    document.getElementById("driverUI").classList.remove("hidden");
+  else
+    document.getElementById("passengerUI").classList.remove("hidden");
+}
 
-  if (!callsign) {
-    notify("Введите позывной");
-    return;
-  }
-
-  if (!user) {
-    notify("Пользователь не загружен");
-    return;
-  }
-
-  await addDoc(collection(db, "drivers"), {
-    vk: user,
-    status: "online",
-    callsign: callsign,
-    created: Date.now()
+// ================= DRIVER =================
+window.saveDriver = async function(){
+  await addDoc(collection(db,"drivers"),{
+    vk:user,
+    status:"online",
+    callsign:document.getElementById("callsign").value
   });
 
   notify("Вы онлайн 🟢");
-};
+}
 
-// ========== CREATE ORDER ==========
-window.createOrder = async function () {
-
-  const from = document.getElementById("from").value.trim();
-  const to = document.getElementById("to").value.trim();
-
-  if (!from || !to) {
-    notify("Заполните поля");
-    return;
-  }
-
-  await addDoc(collection(db, "orders"), {
-    from,
-    to,
-    status: "new",
-    passenger: user,
-    driver: null,
-    created: Date.now()
+// ================= ORDER CREATE =================
+window.createOrder = async function(){
+  await addDoc(collection(db,"orders"),{
+    from:from.value,
+    to:to.value,
+    status:"new",
+    passenger:user,
+    driver:null,
+    created:Date.now()
   });
 
   notify("Заказ создан 🚕");
-};
+}
 
-// ========== ACCEPT ==========
-window.acceptOrder = async function (id) {
+// ================= ACCEPT =================
+window.acceptOrder = async function(id){
 
-  if (cooldown[user] && Date.now() - cooldown[user] < 120000) {
-    notify("Кулдаун 2 минуты ⏳");
+  if(cooldown[user] && Date.now()-cooldown[user] < 120000){
+    notify("Кулдаун 2 минуты");
     return;
   }
 
-  await updateDoc(doc(db, "orders", id), {
-    status: "accepted",
-    driver: user
+  await updateDoc(doc(db,"orders",id),{
+    status:"accepted",
+    driver:user
   });
 
-  cooldown[user] = Date.now();
-  notify("Вы приняли заказ 🚖");
-};
+  cooldown[user]=Date.now();
 
-// ========== STATUS ==========
-window.arrived = async function (id) {
-  await updateDoc(doc(db, "orders", id), { status: "arrived" });
-  notify("Вы на месте 📍");
-};
+  notify("Заказ принят 🚖");
+}
 
-window.finish = async function (id) {
-  await updateDoc(doc(db, "orders", id), { status: "done" });
-  notify("Заказ завершён ✅");
-};
+// ================= STATUS =================
+window.arrived = id =>
+  updateDoc(doc(db,"orders",id),{status:"arrived"});
 
-window.cancel = async function (id) {
-  await updateDoc(doc(db, "orders", id), { status: "cancelled" });
-  notify("Заказ отменён ❌");
-};
+window.finish = id =>
+  updateDoc(doc(db,"orders",id),{status:"done"});
 
-// ========== RENDER ==========
-onSnapshot(query(collection(db, "orders"), orderBy("created", "desc")), snap => {
+window.cancel = id =>
+  updateDoc(doc(db,"orders",id),{status:"cancelled"});
+
+// ================= RENDER =================
+onSnapshot(query(collection(db,"orders"), orderBy("created","desc")), snap => {
 
   let html = "<h3>🚕 Заказы</h3>";
 
@@ -141,47 +117,47 @@ onSnapshot(query(collection(db, "orders"), orderBy("created", "desc")), snap => 
 
     let style = "";
 
-    if (o.status === "accepted") style = "opacity:0.6;";
-    if (o.status === "done" || o.status === "cancelled") style = "opacity:0.3; filter:grayscale(1);";
-
-    // уведомления
-    if (!lastState[d.id] || lastState[d.id] !== o.status) {
-      lastState[d.id] = o.status;
-
-      if (o.status === "accepted" && o.passenger === user) notify("Заказ принят 🚖");
-      if (o.status === "arrived" && o.passenger === user) notify("Машина приехала 📍");
-      if (o.status === "done" && o.passenger === user) notify("Поездка завершена ✅");
-    }
+    if(o.status==="accepted") style="opacity:0.5;";
+    if(o.status==="done" || o.status==="cancelled") style="opacity:0.3; filter:grayscale(1);";
 
     html += `<div class="card" style="${style}">
-      <b>📍 ${o.from} → ${o.to}</b><br>
-      Статус: ${o.status}<br>`;
+      <b>${o.from} → ${o.to}</b><br>
+      Статус: ${o.status}<br>
+    `;
 
-    // DRIVER UI
-    if (role === "driver") {
+    // DRIVER
+    if(role==="driver"){
 
-      if (o.status === "new") {
-        html += `<button onclick="acceptOrder('${d.id}')">Принять 🚖</button>`;
+      if(o.status==="new"){
+        html += `<button onclick="acceptOrder('${d.id}')">Принять</button>`;
       }
 
-      if (o.driver === user && o.status === "accepted") {
+      if(o.driver===user && o.status==="accepted"){
         html += `
-          <button onclick="arrived('${d.id}')">На месте 📍</button>
-          <button onclick="finish('${d.id}')">Завершить ✅</button>
-          <button onclick="cancel('${d.id}')">Отмена ❌</button>
+          <button onclick="arrived('${d.id}')">На месте</button>
+          <button onclick="finish('${d.id}')">Выхожу</button>
+          <button onclick="cancel('${d.id}')">Отмена</button>
         `;
       }
     }
 
-    // PASSENGER UI
-    if (role === "passenger" && o.passenger === user) {
+    // PASSENGER
+    if(role==="passenger" && o.passenger===user){
 
-      if (o.status === "accepted") html += "🚖 Водитель едет...";
-      if (o.status === "arrived") html += "📍 Машина на месте";
-      if (o.status === "done") html += "✅ Завершено";
+      if(o.status==="accepted"){
+        html += "🚖 Водитель едет";
+      }
 
-      if (o.status !== "done") {
-        html += `<br><button onclick="cancel('${d.id}')">Отмена ❌</button>`;
+      if(o.status==="arrived"){
+        html += "🚕 Машина на месте";
+      }
+
+      if(o.status==="done"){
+        html += "✅ Завершено";
+      }
+
+      if(o.status!=="done"){
+        html += `<br><button onclick="cancel('${d.id}')">Отмена</button>`;
       }
     }
 
