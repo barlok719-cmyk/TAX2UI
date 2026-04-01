@@ -97,17 +97,11 @@ hr {
 
 <div id="orders"></div>
 
-<script type="module" src="app.js"></script>
+<!-- ❗ ВАЖНО: убрали type="module" -->
+<script src="app.js"></script>
 
 <script>
 vkBridge.send("VKWebAppInit");
-
-window.nativeNotify = function(title, msg){
-  vkBridge.send("VKWebAppShowMessageBox", {
-    title,
-    message: msg
-  });
-};
 
 function back(){
   document.getElementById("roleSelect").classList.remove("hidden");
